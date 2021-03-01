@@ -1,0 +1,41 @@
+openapi: 3.0.0
+info:
+  title: Static IP Test API    
+  description: Responsible for testing if a lambda function has a static IP for outbound requests
+  version: 1.0.0
+
+paths:
+  /ip:
+    get:
+      summary: Get the outbound IP address of the lambda
+      description: Compares the outbound IP address of the lambda with the expected IP
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  expected:
+                    type: string
+                    description: The expected outbound IP address
+                  actual:
+                    type: string
+                    description: The actual outbound IP address
+                  success:
+                    type: boolean
+                    description: Do the expected and actual IP addresses match
+        500:
+          content:
+            application/json:
+              schema:
+                type: object 
+                properties:
+                  message:
+                    type: string
+                    description: Error message from execution
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StaticIpLambda.Arn}/invocations
+        httpMethod: POST
+        type: aws_proxy

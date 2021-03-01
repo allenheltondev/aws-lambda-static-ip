@@ -1,0 +1,16 @@
+{
+  "name": "static-ip-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function that makes external calls from a static ip",
+  "main": "static-ip-lambda.js",
+  "author": "Allen Helton (@allenheltondev)",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.21.1",    
+    "http-status-codes": "^2.1.4"
+  },
+  "scripts": {},
+  "devDependencies": {
+    "aws-sdk": "^2.767.0"
+  }
+}

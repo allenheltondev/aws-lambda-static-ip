@@ -1,0 +1,12 @@
+{
+  "name": "aws-lambda-static-ip",
+  "version": "1.0.0",
+  "description": "This is an example SAM template to make a lambda that executes from a static ip",
+  "devDependencies": {
+    "aws-sdk": "^2.543.0"
+  },
+  "scripts": {
+    "deploy": "sam build && sam package --output-template-file packaged.yaml --s3-bucket REPLACE_WITH_BUCKET_NAME && sam deploy --template-file packaged.yaml --stack-name static-ip-lambda --capabilities CAPABILITY_IAM"
+  },
+  "license": "MIT"
+}

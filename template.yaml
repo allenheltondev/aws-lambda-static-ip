@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM Template describing how to make a lambda function that sends traffic through a static IP
+
+Resources:
+  StaticIpVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 12.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref StaticIpVpc
+      CidrBlock: 12.0.0.0/24
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref StaticIpVpc
+      CidrBlock: 12.0.1.0/24
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  VpcAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref StaticIpVpc
+
+  VpcPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref StaticIpVpc
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VpcAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref VpcPublicRouteTable
+      GatewayId: !Ref InternetGateway      
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VpcPublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  ElasticIp:
+    Type: AWS::EC2::EIP
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt ElasticIp.AllocationId
+      SubnetId: !Ref PublicSubnet
+
+  VpcPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref StaticIpVpc
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VpcAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref VpcPrivateRouteTable
+      NatGatewayId: !Ref NatGateway      
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VpcPrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+
+  API:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: v1
+      EndpointConfiguration:
+        Type: REGIONAL
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: ./open-api.yaml      
+    
+  StaticIpLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambdas/static-ip-lambda
+      Handler: static-ip-lambda.lambdaHandler
+      Runtime: nodejs12.x
+      Timeout: 10      
+      Role: !GetAtt StaticIpLambdaRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt StaticIpVpc.DefaultSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet
+      Events:
+        VerifyStaticIpEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref API
+            Path: /ip
+            Method: GET
+      Environment:
+        Variables:
+          STATIC_IP: !Ref ElasticIp
+
+  StaticIpLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+
+Outputs:
+  StaticIpAddress:
+    Description: Address of the generated static ip
+    Value: !Ref ElasticIp
+  TestEndpoint: 
+    Description: Url of test endpoint to verify Static IP
+    Value: !Join ['', ['https://', !Ref API, '.execute-api.', !Ref AWS::Region, '.amazonaws.com/v1/ip']]
