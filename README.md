@@ -35,7 +35,7 @@ To facilitate sending outbound web traffic through a static IP, the below archit
 ![AWS Architecture diagram for a lambda with a static IP address](https://readysetcloud.s3.amazonaws.com/Static+IP.png)
 
 ## Support
-If you like this repo and the accompanying [blog post](https://www.readysetcloud.io/blog/allen.helton/setup-static-ip-lambda-the-easy-way), show your support by following me on [Twitter][1] or connecting with me on [LinkedIn][3]. I'm always happy to answer any questions you might have and am open to any ideas you'd like to see turned into an article on my [blog][4]!
+If you like this repo and the accompanying [blog post](https://www.readysetcloud.io/blog/allen.helton/how-to-configure-a-static-ip-for-your-serverless-app), show your support by following me on [Twitter][1] or connecting with me on [LinkedIn][3]. I'm always happy to answer any questions you might have and am open to any ideas you'd like to see turned into an article on my [blog][4]!
 
 [1.1]: http://i.imgur.com/tXSoThF.png
 [2.1]: http://i.imgur.com/0o48UoR.png
